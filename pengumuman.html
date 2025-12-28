@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pengumuman Imam</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;font-family:Inter}
+body{
+  margin:0;
+  min-height:100vh;
+  background:linear-gradient(135deg,#0a2540,#0f3c66,#145ea8);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:white;
+}
+.card{
+  width:100%;
+  max-width:880px;
+  padding:32px;
+  border-radius:28px;
+  background:rgba(255,255,255,.13);
+  backdrop-filter:blur(22px);
+  box-shadow:0 30px 70px rgba(0,0,0,.45);
+}
+.logo-wrap{
+  width:110px;height:110px;margin:0 auto 14px;
+  border-radius:50%;padding:6px;
+  background:linear-gradient(135deg,#4facfe,#00f2fe);
+}
+.logo-wrap img{
+  width:100%;height:100%;
+  border-radius:50%;object-fit:contain;
+  background:white;
+}
+.title{text-align:center}
+.title h2{margin:6px 0 2px;font-size:20px}
+.title small{opacity:.85;font-size:13px}
+
+.adzan{
+  margin:22px 0;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;
+}
+.adzan div{
+  background:rgba(255,255,255,.18);
+  border-radius:14px;
+  padding:10px 0;
+  text-align:center;
+  font-size:13px;
+}
+
+.form{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+}
+input,select,button{
+  padding:13px;
+  border-radius:14px;
+  border:none;
+  outline:none;
+}
+input,select{background:rgba(255,255,255,.95)}
+.hidden{display:none}
+
+.preview{
+  margin-top:18px;
+  padding:16px;
+  border-radius:18px;
+  background:rgba(0,0,0,.35);
+  font-size:14px;
+  min-height:70px;
+}
+
+button{
+  margin-top:18px;
+  width:100%;
+  background:linear-gradient(135deg,#4facfe,#00f2fe);
+  color:#003;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.footer{
+  margin-top:18px;
+  text-align:center;
+  font-size:12px;
+  opacity:.75;
+}
+
+@media(max-width:700px){
+  .adzan{grid-template-columns:repeat(2,1fr)}
+  .form{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+<div class="card">
+
+  <div class="logo-wrap">
+    <img src="logo.png">
+  </div>
+
+  <div class="title">
+    <h2>SMA SAINS AL-QUR'AN</h2>
+    <small>YAYASAN WAHID HASYIM YOGYAKARTA</small>
+  </div>
+
+  <div class="adzan" id="jadwal">
+    <div>Subuh<br>--:--</div>
+    <div>Dzuhur<br>--:--</div>
+    <div>Ashar<br>--:--</div>
+    <div>Maghrib<br>--:--</div>
+    <div>Isya<br>--:--</div>
+  </div>
+
+  <div class="form">
+    <select id="sholat" onchange="aturForm()">
+      <option value="">Pilih Sholat</option>
+      <option value="subuh">Subuh</option>
+      <option value="dzuhur">Dzuhur</option>
+      <option value="ashar">Ashar</option>
+      <option value="maghrib">Maghrib</option>
+      <option value="isya">Isya</option>
+    </select>
+
+    <select id="lokasi"></select>
+
+    <input id="qab" placeholder="Nama Qabliyah">
+    <input id="bad" placeholder="Nama Ba'diyah" class="hidden">
+  </div>
+
+  <div class="preview" id="preview">
+    Preview pengumuman akan muncul di sini
+  </div>
+
+  <button onclick="play()">▶ PUTAR PENGUMUMAN</button>
+
+  <audio id="rekaman"></audio>
+
+  <div class="footer">
+    Sistem Pengumuman Imam Digital • SMA SAINS AL-QUR'AN
+  </div>
+</div>
+
+<script>
+const sholat = document.getElementById("sholat");
+const lokasi = document.getElementById("lokasi");
+const qab = document.getElementById("qab");
+const bad = document.getElementById("bad");
+const preview = document.getElementById("preview");
+const audio = document.getElementById("rekaman");
+
+function aturForm(){
+  lokasi.innerHTML="";
+  bad.classList.add("hidden");
+
+  if(sholat.value==="subuh" || sholat.value==="dzuhur"){
+    lokasi.innerHTML="<option>Masjid AHC</option>";
+  }else{
+    lokasi.innerHTML="<option>Lantai 1</option><option>Lantai 2</option>";
+  }
+
+  if(sholat.value==="dzuhur" || sholat.value==="isya"){
+    bad.classList.remove("hidden");
+  }
+
+  buatPreview();
+}
+
+function buatPreview(){
+  let l = lokasi.value;
+  let t = "";
+
+  if(sholat.value==="subuh")
+    t=`Kepada petugas imam Masjid AHC sholat tahajud, duha, dan qabliyah dzuhur ${qab.value}, segera mempersiapkan diri.`;
+
+  if(sholat.value==="dzuhur")
+    t=`Kepada petugas imam qabliyah dzuhur Masjid AHC ${qab.value} dan ba'diyah dzuhur Masjid AHC ${bad.value}, segera mempersiapkan diri.`;
+
+  if(sholat.value==="ashar")
+    t=`Kepada petugas imam sholat qabliyah ashar ${l} ${qab.value}, segera mempersiapkan diri.`;
+
+  if(sholat.value==="maghrib")
+    t=`Kepada petugas imam sholat hajat ${l} ${qab.value}, segera mempersiapkan diri.`;
+
+  if(sholat.value==="isya")
+    t=`Kepada petugas imam sholat qabliyah isya ${l} ${qab.value} dan ba'diyah isya ${l} ${bad.value}, segera mempersiapkan diri.`;
+
+  preview.innerText=t;
+}
+
+[qab,bad,lokasi].forEach(e=>e.addEventListener("input",buatPreview));
+
+function suaraLantai(){
+  if(lokasi.value==="Lantai 1") return "audio/lantai1.mp3";
+  if(lokasi.value==="Lantai 2") return "audio/lantai2.mp3";
+  return null;
+}
+
+function play(){
+  let queue = [];
+
+  queue.push("audio/bel.mp3");
+
+  if(sholat.value==="subuh"){
+    queue.push("audio/subuh.mp3", qab.value);
+  }
+  if(sholat.value==="dzuhur"){
+    queue.push("audio/dzuhur_qab.mp3", qab.value,"audio/dzuhur_bad.mp3", bad.value);
+  }
+  if(sholat.value==="ashar"){
+    queue.push("audio/ashar.mp3", suaraLantai(), qab.value);
+  }
+  if(sholat.value==="maghrib"){
+    queue.push("audio/maghrib.mp3", suaraLantai(), qab.value);
+  }
+  if(sholat.value==="isya"){
+    queue.push("audio/isya_qab.mp3", suaraLantai(), qab.value,"audio/isya_bad.mp3", suaraLantai(), bad.value);
+  }
+
+  queue.push("audio/penutup.mp3");
+  playQueue(queue.filter(Boolean));
+}
+
+function playQueue(queue){
+  if(queue.length===0) return;
+  const item=queue.shift();
+
+  if(item.endsWith(".mp3")){
+    audio.src=item;
+    audio.play();
+    audio.onended=()=>playQueue(queue);
+  }else{
+    const tts=new SpeechSynthesisUtterance(item);
+    tts.lang="id-ID";
+    tts.rate=0.9;
+    speechSynthesis.speak(tts);
+    tts.onend=()=>playQueue(queue);
+  }
+}
+
+fetch("https://api.aladhan.com/v1/timingsByCity?city=Sleman&country=Indonesia&method=20")
+.then(r=>r.json())
+.then(d=>{
+  const t=d.data.timings;
+  document.getElementById("jadwal").innerHTML=`
+    <div>Subuh<br><b>${t.Fajr}</b></div>
+    <div>Dzuhur<br><b>${t.Dhuhr}</b></div>
+    <div>Ashar<br><b>${t.Asr}</b></div>
+    <div>Maghrib<br><b>${t.Maghrib}</b></div>
+    <div>Isya<br><b>${t.Isha}</b></div>`;
+});
+</script>
+</body>
+</html>
