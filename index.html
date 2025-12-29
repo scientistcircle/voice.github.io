@@ -37,7 +37,6 @@
             grid-column: span 2;
             text-align: right;
             margin-bottom: 10px;
-            padding-right: 10px;
         }
         #realtime-date { font-size: 14px; opacity: 0.8; margin: 0; }
         #realtime-clock { font-size: 32px; font-weight: 700; margin: 0; color: var(--secondary); letter-spacing: 2px; }
@@ -143,21 +142,14 @@
     </div>
 </div>
 
-<audio id="rekaman" crossorigin="anonymous" referrerpolicy="no-referrer"></audio>
+<audio id="rekaman" referrerpolicy="no-referrer"></audio>
 
 <script>
-    const audio = document.getElementById("rekaman");
+    const audioTag = document.getElementById("rekaman");
     const viz = document.getElementById("viz");
     const btnPlay = document.getElementById("mainPlay");
 
-    // 1. FUNGSI UNTUK MEMBANGUNKAN AUDIO (Wajib diklik)
-    function bangunkanAudio() {
-        const context = new (window.AudioContext || window.webkitAudioContext)();
-        if (context.state === 'suspended') {
-            context.resume();
-        }
-    }
-
+    // Update Waktu
     function updateDateTime() {
         const now = new Date();
         document.getElementById('realtime-date').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -174,62 +166,73 @@
         document.getElementById("group-bad").classList.toggle("hidden", !(s==="dzuhur" || s==="isya"));
     }
 
-    function getTTSUrl(text) {
-        return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=id&client=tw-ob&ttsspeed=1`;
-    }
-
-    async function putar(url) {
+    // Fungsi Inti Putar Audio (Bypass CORS)
+    async function putarAudio(url) {
         return new Promise((resolve) => {
-            audio.src = url;
-            audio.load(); // Paksa browser muat file
-            audio.play().then(() => {
+            // Gunakan objek Audio baru untuk Google TTS agar tidak kena CORS policy
+            let player = url.includes("google") ? new Audio() : audioTag;
+            
+            player.src = url;
+            player.referrerPolicy = "no-referrer";
+            
+            player.play().then(() => {
                 viz.classList.add("active");
             }).catch(e => {
-                console.log("Autoplay blocked, skipping...");
+                console.error("Gagal putar suara:", e);
                 resolve();
             });
-            audio.onended = () => {
+
+            player.onended = () => {
                 viz.classList.remove("active");
                 resolve();
             };
-            audio.onerror = () => {
+
+            player.onerror = () => {
+                console.error("Error pada file:", url);
                 viz.classList.remove("active");
                 resolve();
             };
         });
     }
 
+    function getTTS(teks) {
+        return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(teks)}&tl=id&client=tw-ob&ttsspeed=1`;
+    }
+
     async function testVoice(id) {
-        bangunkanAudio(); // Bangunkan audio sistem
-        const name = document.getElementById(id).value;
-        if(!name) return alert("Isi nama dulu!");
-        await putar(getTTSUrl(name));
+        const val = document.getElementById(id).value;
+        if(!val) return alert("Isi nama dulu!");
+        await putarAudio(getTTS(val));
     }
 
     async function play() {
         const s = document.getElementById("sholat").value;
         const q = document.getElementById("qab").value;
-        if(!s || !q) return alert("Pilih sholat & isi nama!");
+        const b = document.getElementById("bad").value;
+        if(!s || !q) return alert("Data tidak lengkap!");
 
-        bangunkanAudio(); // Bangunkan audio sistem
         btnPlay.disabled = true;
-        btnPlay.innerText = "SEDANG DISIARKAN...";
+        btnPlay.innerText = "MENYIARKAN...";
 
-        let l = document.getElementById("lokasi").value;
+        const l = document.getElementById("lokasi").value;
         let queue = ["audio/bel.mp3"];
 
+        // Logika Antrean
         if(s==="subuh") queue.push("audio/subuh.mp3", q);
-        else if(s==="dzuhur") queue.push("audio/dzuhur_qab.mp3", q, "audio/dzuhur_bad.mp3", document.getElementById("bad").value);
-        else if(s==="ashar") queue.push("audio/ashar.mp3", (l==="Lantai 1"?"audio/lantai1.mp3":"audio/lantai2.mp3"), q);
-        else if(s==="maghrib") queue.push("audio/maghrib.mp3", (l==="Lantai 1"?"audio/lantai1.mp3":"audio/lantai2.mp3"), q);
-        else if(s==="isya") queue.push("audio/isya_qab.mp3", (l==="Lantai 1"?"audio/lantai1.mp3":"audio/lantai2.mp3"), q, "audio/isya_bad.mp3", (l==="Lantai 1"?"audio/lantai1.mp3":"audio/lantai2.mp3"), document.getElementById("bad").value);
+        else if(s==="dzuhur") queue.push("audio/dzuhur_qab.mp3", q, "audio/dzuhur_bad.mp3", b);
+        else if(s==="ashar" || s==="maghrib") {
+            queue.push(`audio/${s}.mp3`, (l==="Lantai 1" ? "audio/lantai1.mp3" : "audio/lantai2.mp3"), q);
+        }
+        else if(s==="isya") {
+            queue.push("audio/isya_qab.mp3", (l==="Lantai 1" ? "audio/lantai1.mp3" : "audio/lantai2.mp3"), q, "audio/isya_bad.mp3", b);
+        }
 
         queue.push("audio/penutup.mp3");
 
         for (let item of queue.filter(Boolean)) {
-            let path = item.endsWith(".mp3") ? item : getTTSUrl(item);
-            await putar(path);
-            await new Promise(r => setTimeout(r, 500));
+            let path = item.endsWith(".mp3") ? item : getTTS(item);
+            await putarAudio(path);
+            await new Promise(r => setTimeout(r, 600));
         }
 
         btnPlay.disabled = false;
@@ -244,6 +247,7 @@
         row.innerHTML = `<td>${jam}</td><td><span class="badge">${s.toUpperCase()}</span></td><td style="font-weight:600">${q}</td>`;
     }
 
+    // Ambil Jadwal Adzan
     fetch("https://api.aladhan.com/v1/timingsByCity?city=Sleman&country=Indonesia&method=20")
     .then(r=>r.json()).then(d=>{
         const t=d.data.timings;
