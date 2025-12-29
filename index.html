@@ -1,211 +1,81 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Announcement Santri - SMA Sains Al-Qur'an</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4facfe; --secondary: #00f2fe;
-            --bg-gradient: linear-gradient(135deg, #0a2540 0%, #0f3c66 50%, #145ea8 100%);
-            --glass: rgba(255, 255, 255, 0.12);
-        }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { margin: 0; min-height: 100vh; background: var(--bg-gradient); display: flex; justify-content: center; align-items: center; color: white; padding: 20px; }
-        .main-wrapper { display: grid; grid-template-columns: 1fr 400px; gap: 25px; width: 100%; max-width: 1250px; }
-        
-        .card, .log-section { background: var(--glass); backdrop-filter: blur(20px); border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 25px 50px rgba(0,0,0,0.4); }
-        .card { padding: 40px; text-align: center; }
-        
-        .vu-meter-container { display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 15px; margin-bottom: 25px; }
-        .vu-row { display: flex; align-items: center; gap: 10px; }
-        .vu-bar-bg { flex-grow: 1; height: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; overflow: hidden; }
-        .vu-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #4facfe, #00f2fe, #f2fe00); transition: width 0.08s ease-out; }
-
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left; }
-        input, select { width: 100%; padding: 15px; border-radius: 12px; border: none; background: white; color: #333; font-weight: 600; font-size: 14px; }
-        
-        button#mainPlay { margin-top: 25px; width: 100%; padding: 20px; border-radius: 15px; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #0a2540; font-weight: 800; border: none; cursor: pointer; text-transform: uppercase; }
-        button#mainPlay:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .log-section { padding: 30px; height: 500px; }
-        .log-container { overflow-y: auto; height: 100%; }
-        .badge { background: var(--primary); color: #0a2540; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; }
-        .hidden { display: none; }
-        
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    </style>
-</head>
-<body>
-
-<div class="main-wrapper">
-    <div class="card">
-        <div class="logo-wrap"><h2 style="margin:0 0 10px 0; font-size: 18px;">SMA SAINS AL-QUR'AN</h2></div>
-        
-        <div class="vu-meter-container">
-            <div class="vu-row"><span>L</span><div class="vu-bar-bg"><div id="vu-l" class="vu-bar-fill"></div></div></div>
-            <div class="vu-row"><span>R</span><div class="vu-bar-bg"><div id="vu-r" class="vu-bar-fill"></div></div></div>
-        </div>
-
-        <div class="form-grid">
-            <select id="sholat" onchange="aturForm()">
-                <option value="">-- Pilih Sholat --</option>
-                <option value="subuh">Subuh</option>
-                <option value="dzuhur">Dzuhur</option>
-                <option value="ashar">Ashar</option>
-                <option value="maghrib">Maghrib</option>
-                <option value="isya">Isya</option>
-            </select>
-            <select id="lokasi"></select>
-            <input id="qab" placeholder="Nama Petugas Utama" style="grid-column: span 2">
-            <input id="bad" class="hidden" placeholder="Nama Petugas Tambahan" style="grid-column: span 2">
-        </div>
-
-        <button id="mainPlay" onclick="mulaiPengumuman()">▶ SIARKAN PENGUMUMAN</button>
-    </div>
-
-    <div class="log-section">
-        <h3>📋 Riwayat Petugas</h3>
-        <div class="log-container">
-            <table id="logTable"><tbody></tbody></table>
-        </div>
-    </div>
-</div>
-
-<audio id="player" crossorigin="anonymous"></audio>
-
-<script>
-    const player = document.getElementById("player");
-    const vuL = document.getElementById("vu-l");
-    const vuR = document.getElementById("vu-r");
-    let audioCtx, analyzer, dataArray;
-
-    // FUNGSI SUARA (TTS) - Menggunakan mesin internal browser
-    function bicara(teks) {
+// --- FUNGSI AUDIO FIX ---
+    async function putar(url) {
         return new Promise((resolve) => {
-            const synth = window.speechSynthesis;
-            const utter = new SpeechSynthesisUtterance(teks);
+            console.log("Sedang memutar:", url); // Cek di Console (F12)
+            audio.src = url;
             
-            // Mencari suara Indonesia terbaik di sistem
-            const voices = synth.getVoices();
-            utter.voice = voices.find(v => v.lang.includes('id')) || voices[0];
-            
-            utter.lang = 'id-ID';
-            utter.pitch = 1.0; 
-            utter.rate = 0.9; // Sedikit pelan agar jelas
-            
-            utter.onstart = () => beralihVU(true);
-            utter.onend = () => { beralihVU(false); resolve(); };
-            synth.speak(utter);
+            // Penting: Reset audio agar bisa diputar ulang
+            audio.load(); 
+
+            audio.play().then(() => {
+                viz.classList.add("active");
+            }).catch(e => {
+                console.error("Gagal putar! Klik layar dulu.", e);
+                resolve();
+            });
+
+            audio.onended = () => {
+                viz.classList.remove("active");
+                resolve();
+            };
+
+            audio.onerror = (e) => {
+                console.error("File tidak ditemukan atau error:", url);
+                viz.classList.remove("active");
+                resolve(); // Tetap lanjut ke antrean berikutnya
+            };
         });
     }
 
-    // Simulasi VU Meter khusus untuk TTS
-    let vuInterval;
-    function beralihVU(mulai) {
-        if (mulai) {
-            vuInterval = setInterval(() => {
-                let v = Math.random() * 50 + 20;
-                vuL.style.width = v + "%";
-                vuR.style.width = (v - 5) + "%";
-            }, 100);
-        } else {
-            clearInterval(vuInterval);
-            vuL.style.width = "0%"; vuR.style.width = "0%";
-        }
-    }
+    async function play() {
+        // WAJIB: Bangunkan Audio Context (Izin browser)
+        bangunkanAudio();
 
-    function initAudio() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            analyzer = audioCtx.createAnalyser();
-            const source = audioCtx.createMediaElementSource(player);
-            source.connect(analyzer);
-            analyzer.connect(audioCtx.destination);
-            analyzer.fftSize = 64;
-            dataArray = new Uint8Array(analyzer.frequencyBinCount);
-            drawVU();
-        }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-    }
-
-    function drawVU() {
-        requestAnimationFrame(drawVU);
-        if (!analyzer) return;
-        analyzer.getByteFrequencyData(dataArray);
-        let avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        let val = (avg / 128) * 100;
-        vuL.style.width = val + "%";
-        vuR.style.width = (val * 0.9) + "%";
-    }
-
-    function aturForm(){
-        const s = document.getElementById("sholat").value;
-        const l = document.getElementById("lokasi");
-        l.innerHTML = (s==="subuh" || s==="dzuhur") ? "<option>Masjid AHC</option>" : "<option>Lantai 1</option><option>Lantai 2</option>";
-        document.getElementById("bad").classList.toggle("hidden", !(s==="dzuhur" || s==="isya"));
-    }
-
-    async function putarFile(path, vol = 1.0) {
-        return new Promise((resolve) => {
-            player.src = path;
-            player.volume = vol;
-            player.play().catch(resolve);
-            player.onended = resolve;
-        });
-    }
-
-    async function mulaiPengumuman() {
-        initAudio();
         const s = document.getElementById("sholat").value;
         const q = document.getElementById("qab").value;
-        const b = document.getElementById("bad").value;
-        const loc = document.getElementById("lokasi").value;
-        
-        if(!s || !q) return alert("Pilih sholat dan isi nama!");
-        
-        document.getElementById("mainPlay").disabled = true;
+        if(!s || !q) return alert("Pilih sholat & isi nama!");
 
-        // 1. Bel
-        await putarFile('audio/bel.mp3', 0.4);
+        btnPlay.disabled = true;
+        btnPlay.innerText = "SEDANG DISIARKAN...";
 
-        // 2. Instruksi & Nama Berdasarkan Waktu
-        if (s === "subuh") {
-            await putarFile('audio/subuh.mp3');
-            await bicara(q);
-        } else if (s === "dzuhur") {
-            await putarFile('audio/dzuhur_qab.mp3');
-            await bicara(q);
-            await putarFile('audio/dzuhur_bad.mp3');
-            await bicara(b);
-        } else if (s === "ashar" || s === "maghrib") {
-            await putarFile(`audio/${s}.mp3`);
-            await putarFile(loc === "Lantai 1" ? "audio/lantai1.mp3" : "audio/lantai2.mp3");
-            await bicara(q);
-        } else if (s === "isya") {
-            await putarFile('audio/isya_qab.mp3');
-            await putarFile(loc === "Lantai 1" ? "audio/lantai1.mp3" : "audio/lantai2.mp3");
-            await bicara(q);
-            await putarFile('audio/isya_bad.mp3');
-            await putarFile(loc === "Lantai 1" ? "audio/lantai1.mp3" : "audio/lantai2.mp3");
-            await bicara(b);
+        let l = document.getElementById("lokasi").value;
+        
+        // Buat daftar antrean
+        let queue = [];
+        queue.push("audio/bel.mp3");
+
+        if(s==="subuh") {
+            queue.push("audio/subuh.mp3");
+            queue.push(q);
+        } else if(s==="dzuhur") {
+            queue.push("audio/dzuhur_qab.mp3");
+            queue.push(q);
+            queue.push("audio/dzuhur_bad.mp3");
+            queue.push(document.getElementById("bad").value);
+        } else if(s==="ashar" || s==="maghrib") {
+            queue.push(`audio/${s}.mp3`);
+            queue.push(l === "Lantai 1" ? "audio/lantai1.mp3" : "audio/lantai2.mp3");
+            queue.push(q);
+        } else if(s==="isya") {
+            queue.push("audio/isya_qab.mp3");
+            queue.push(l === "Lantai 1" ? "audio/lantai1.mp3" : "audio/lantai2.mp3");
+            queue.push(q);
+            queue.push("audio/isya_bad.mp3");
+            queue.push(l === "Lantai 1" ? "audio/lantai1.mp3" : "audio/lantai2.mp3");
+            queue.push(document.getElementById("bad").value);
         }
 
-        // 3. Penutup
-        await putarFile('audio/penutup.mp3');
+        queue.push("audio/penutup.mp3");
 
-        document.getElementById("mainPlay").disabled = false;
+        // Proses antrean satu per satu
+        for (let item of queue) {
+            if (!item) continue;
+            let finalPath = item.endsWith(".mp3") ? item : getTTSUrl(item);
+            await putar(finalPath);
+            await new Promise(r => setTimeout(r, 500)); // Jeda antar suara
+        }
+
+        btnPlay.disabled = false;
+        btnPlay.innerText = "▶ Siarkan Pengumuman";
         tambahLog(s, q);
     }
-
-    function tambahLog(s, q) {
-        const table = document.getElementById("logTable").getElementsByTagName('tbody')[0];
-        const row = table.insertRow(0);
-        const jam = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-        row.innerHTML = `<td>${jam}</td><td><span class="badge">${s.toUpperCase()}</span></td><td>${q}</td>`;
-    }
-</script>
-</body>
-</html>
